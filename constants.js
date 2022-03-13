@@ -1,3 +1,3 @@
-const origin = "http://localhost:3000";
+const origin = process.env.ORIGIN;
 
 module.exports = { origin };
