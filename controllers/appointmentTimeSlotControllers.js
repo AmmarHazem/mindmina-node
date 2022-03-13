@@ -1,4 +1,5 @@
 const AppointmentTimeSlotModel = require("../models/AppointmentTimeSlot");
+const UserModel = require("../models/User");
 const moment = require("moment");
 const CustomErrors = require("../errors");
 
@@ -8,8 +9,10 @@ const createDaySlotsForPractitioner = async (request, response) => {
   const dayDateString =
     request.body.date || moment().add(1, "days").format("YYYY-MM-DD");
   const practitionerID = request.body.practitionerID;
-  if (!practitionerID) {
-    throw new CustomErrors.BadRequestError("practitioner ID is required");
+  const slotDurationInMinutes = request.body.slotDurationInMinutes || 15;
+  const practitioner = await UserModel.findById(practitionerID);
+  if (!practitioner) {
+    throw new CustomErrors.NotFoundError("invalid practitioner ID");
   }
   const dayStartDateTime = moment(`${dayDateString} ${dayStartHour}`);
   const dayEndDateTime = dayStartDateTime.clone().add(8, "hours");
@@ -19,8 +22,9 @@ const createDaySlotsForPractitioner = async (request, response) => {
     slotDocs.push({
       startDateTime: currentSlotTime.toDate(),
       practitioner: practitionerID,
+      duration: slotDurationInMinutes * 60,
     });
-    currentSlotTime = currentSlotTime.add(15, "minutes");
+    currentSlotTime = currentSlotTime.add(slotDurationInMinutes, "minutes");
   }
   const slots = await AppointmentTimeSlotModel.insertMany(slotDocs);
   response.json({

@@ -8,6 +8,8 @@ const routeNotFoundMiddleware = require("./middleware/routeNotFoundMiddleware");
 const errorHandlerMiddleware = require("./middleware/errorHandlerMiddleware");
 const appointmentTimeSlotRoutes = require("./routes/appointmentTimeSlotRoutes");
 const uploadFileRoutes = require("./routes/uploadFileRoutes");
+const userRoutes = require("./routes/userRoutes");
+const appointmentRoutes = require("./routes/appointmentRoutes");
 
 const app = express();
 app.use(express.static("./public"));
@@ -17,6 +19,8 @@ app.use(fileUpload({ useTempFiles: true }));
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/time-slots", appointmentTimeSlotRoutes);
 app.use("/api/v1/files", uploadFileRoutes);
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/appointments", appointmentRoutes);
 app.use(routeNotFoundMiddleware);
 app.use(errorHandlerMiddleware);
 
