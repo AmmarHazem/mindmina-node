@@ -1,5 +1,20 @@
 const mongoose = require("mongoose");
 
+const InsuranceProvidersList = [
+  {
+    value: "adnic",
+    name: "ADNIC",
+  },
+  {
+    value: "daman",
+    name: "DAMAN Insurance",
+  },
+  {
+    value: "axa",
+    name: "AXA Insurance",
+  },
+];
+
 const AppointmentSchema = new mongoose.Schema(
   {
     slot: {
@@ -54,23 +69,7 @@ const AppointmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const InsuranceProvidersList = [
-  {
-    value: "adnic",
-    name: "ADNIC",
-  },
-  {
-    value: "daman",
-    name: "DAMAN Insurance",
-  },
-  {
-    value: "axa",
-    name: "AXA Insurance",
-  },
-];
-
 AppointmentSchema.index({ practitioner: 1 });
-
 AppointmentSchema.index({ customer: 1 });
 
 module.exports = mongoose.model("Appointment", AppointmentSchema);

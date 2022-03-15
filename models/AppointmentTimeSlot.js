@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const moment = require("moment");
 
 const AppointmentTimeSlotSchema = new mongoose.Schema(
   {
@@ -22,6 +23,10 @@ const AppointmentTimeSlotSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+AppointmentTimeSlotSchema.virtual("endDateTime").get(function () {
+  return moment(this.startDateTime).add(this.duration, "seconds").toDate();
+});
 
 AppointmentTimeSlotSchema.index(
   { practitioner: 1, startDateTime: 1 },

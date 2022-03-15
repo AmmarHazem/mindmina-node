@@ -44,6 +44,8 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
+UserSchema.index({ role: 1 });
+
 UserSchema.pre("remove", function () {
   if (this.role !== "practitioner") return;
   this.model("AppointmentTimeSlot").deleteMany({ practitioner: this._id });

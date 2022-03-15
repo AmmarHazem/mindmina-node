@@ -5,12 +5,32 @@ const AppointmentTimeSlotModel = require("../models/AppointmentTimeSlot");
 const CustomErrors = require("../errors");
 
 const getCurrentCustomerAppointments = async (request, response) => {
-  const { startDate, endDate } = request.params;
+  const { startDate, endDate } = request.query;
   // if (!startDate || !endDate) {
   //   throw new CustomErrors.BadRequestError("start and end date are required");
   // }
+  const queryObject = {};
+  if (startDate) {
+    queryObject.startDateTime = { $gt: moment(startDate) };
+  }
+  if (endDate) {
+    queryObject.startDateTime = { $lt: moment(endDate) };
+  }
+  if (!startDate && !endDate) {
+    queryObject.startDateTime = { $gt: Date.now() };
+  }
   const appointments = await AppointmentModel.find({
     customer: request.user.id,
+  }).populate({
+    path: "slot",
+    match: queryObject,
+  });
+  const appointmentsWithSlots = appointments.filter(
+    (item) => item.slot !== null
+  );
+  response.json({
+    count: appointmentsWithSlots.length,
+    appointmentsWithSlots,
   });
 };
 
@@ -109,4 +129,4 @@ const bookAppointment = async (request, response) => {
   });
 };
 
-module.exports = { bookAppointment };
+module.exports = { bookAppointment, getCurrentCustomerAppointments };
