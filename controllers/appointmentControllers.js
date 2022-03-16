@@ -6,19 +6,24 @@ const CustomErrors = require("../errors");
 
 const getCurrentCustomerAppointments = async (request, response) => {
   const { startDate, endDate } = request.query;
-  // if (!startDate || !endDate) {
-  //   throw new CustomErrors.BadRequestError("start and end date are required");
-  // }
   const queryObject = {};
   if (startDate) {
-    queryObject.startDateTime = { $gt: moment(startDate) };
+    queryObject.startDateTime = { $gte: moment(startDate).toDate() };
   }
   if (endDate) {
-    queryObject.startDateTime = { $lt: moment(endDate) };
+    queryObject.startDateTime = { $lte: moment(endDate).toDate() };
   }
   if (!startDate && !endDate) {
-    queryObject.startDateTime = { $gt: Date.now() };
+    queryObject.startDateTime = { $gte: Date.now() };
   }
+  // const slots = await AppointmentTimeSlotModel.find(queryObject).populate(
+  //   "appointment"
+  // );
+  // const slotIDs = slots.map((item) => item._id);
+  // const appointments = await AppointmentModel.find({
+  //   slot: { $in: slotIDs },
+  //   customer: request.user.id,
+  // }).populate("slot");
   const appointments = await AppointmentModel.find({
     customer: request.user.id,
   }).populate({

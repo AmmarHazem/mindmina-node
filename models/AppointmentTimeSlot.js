@@ -24,6 +24,15 @@ const AppointmentTimeSlotSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+AppointmentTimeSlotSchema.index({ startDateTime: 1 });
+
+AppointmentTimeSlotSchema.virtual("appointment", {
+  ref: "Appointment",
+  localField: "_id",
+  foreignField: "slot",
+  justOne: false,
+});
+
 AppointmentTimeSlotSchema.virtual("endDateTime").get(function () {
   return moment(this.startDateTime).add(this.duration, "seconds").toDate();
 });

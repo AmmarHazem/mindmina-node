@@ -61,9 +61,7 @@ const AppointmentSchema = new mongoose.Schema(
     },
     customerInsuranceID: { type: String },
     customerReasonOfVisit: { type: String, required: true },
-    doFullPayment: {
-      type: Boolean,
-    },
+    doFullPayment: { type: Boolean },
     voiceNote: { type: String },
   },
   { timestamps: true }
