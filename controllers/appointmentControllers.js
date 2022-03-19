@@ -16,26 +16,24 @@ const getCurrentCustomerAppointments = async (request, response) => {
   if (!startDate && !endDate) {
     queryObject.startDateTime = { $gte: Date.now() };
   }
-  // const slots = await AppointmentTimeSlotModel.find(queryObject).populate(
-  //   "appointment"
-  // );
-  // const slotIDs = slots.map((item) => item._id);
-  // const appointments = await AppointmentModel.find({
-  //   slot: { $in: slotIDs },
-  //   customer: request.user.id,
-  // }).populate("slot");
+  const slots = await AppointmentTimeSlotModel.find(queryObject);
+  const slotIDs = slots.map((item) => item._id);
   const appointments = await AppointmentModel.find({
+    slot: { $in: slotIDs },
     customer: request.user.id,
-  }).populate({
-    path: "slot",
-    match: queryObject,
-  });
-  const appointmentsWithSlots = appointments.filter(
-    (item) => item.slot !== null
-  );
+  }).populate("slot");
+  // const appointments = await AppointmentModel.find({
+  //   customer: request.user.id,
+  // }).populate({
+  //   path: "slot",
+  //   match: queryObject,
+  // });
+  // const appointmentsWithSlots = appointments.filter(
+  //   (item) => item.slot !== null
+  // );
   response.json({
-    count: appointmentsWithSlots.length,
-    appointmentsWithSlots,
+    count: appointments.length,
+    appointments,
   });
 };
 

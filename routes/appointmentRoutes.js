@@ -1,5 +1,6 @@
 const express = require("express");
 const authenticationMiddleware = require("../middleware/authenticationMiddleware");
+const hasPermissionMiddleware = require("../middleware/hasPermissionMiddleware");
 const {
   bookAppointment,
   getCurrentCustomerAppointments,
@@ -9,7 +10,7 @@ const router = express.Router();
 
 router.get(
   "/current-customer-appointments",
-  [authenticationMiddleware],
+  [authenticationMiddleware, hasPermissionMiddleware("customer", "admin")],
   getCurrentCustomerAppointments
 );
 router.post("/book-appointment", [authenticationMiddleware], bookAppointment);

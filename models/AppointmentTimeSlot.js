@@ -21,7 +21,7 @@ const AppointmentTimeSlotSchema = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
 AppointmentTimeSlotSchema.index({ startDateTime: 1 });
@@ -30,7 +30,7 @@ AppointmentTimeSlotSchema.virtual("appointment", {
   ref: "Appointment",
   localField: "_id",
   foreignField: "slot",
-  justOne: false,
+  justOne: true,
 });
 
 AppointmentTimeSlotSchema.virtual("endDateTime").get(function () {
