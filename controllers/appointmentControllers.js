@@ -4,25 +4,128 @@ const AppointmentModel = require("../models/Appointment");
 const AppointmentTimeSlotModel = require("../models/AppointmentTimeSlot");
 const CustomErrors = require("../errors");
 
+const endAppointmentByCustomer = async (request, response) => {
+  const { appointmentID } = request.body;
+  if (!appointmentID) {
+    throw new CustomErrors.BadRequestError("appointmnet ID is required");
+  }
+  const appointment = await AppointmentModel.findById(appointmentID).populate(
+    "slot",
+    "isBooked"
+  );
+  if (!appointment) {
+    throw new CustomErrors.NotFoundError("appointment not found");
+  }
+  if (appointment.customer.toString() !== request.user.id) {
+    throw new CustomErrors.NotFoundError("invalid appointment ID");
+  }
+  if (!appointment.slot || !appointment.slot.isBooked) {
+    throw new CustomErrors.NotFoundError("appointmnet not found");
+  }
+  if (!appointment.endedByCustomer) {
+    appointment.endedByCustomer = true;
+    appointment.dateEndedByCustomer = new Date();
+    await appointment.save();
+  }
+  response.json({ appointment });
+};
+
+const endAppointmentByPractitioner = async (request, response) => {
+  const { appointmentID } = request.body;
+  if (!appointmentID) {
+    throw new CustomErrors.BadRequestError("appointmnet ID is required");
+  }
+  const appointment = await AppointmentModel.findById(appointmentID).populate(
+    "slot",
+    "isBooked"
+  );
+  if (!appointment) {
+    throw new CustomErrors.NotFoundError("appointment not found");
+  }
+  if (appointment.practitioner.toString() !== request.user.id) {
+    throw new CustomErrors.NotFoundError("invalid appointment ID");
+  }
+  if (!appointment.slot || !appointment.slot.isBooked) {
+    throw new CustomErrors.NotFoundError("appointmnet not found");
+  }
+  if (!appointment.endedByPractitioner) {
+    appointment.endedByPractitioner = true;
+    appointment.dateEndedByPractitioner = new Date();
+    await appointment.save();
+  }
+  response.json({ appointment });
+};
+
+const joinAppointmentByCustomer = async (request, response) => {
+  const { appointmentID } = request.body;
+  if (!appointmentID) {
+    throw new CustomErrors.BadRequestError("appointmnet ID is required");
+  }
+  const appointment = await AppointmentModel.findById(appointmentID).populate(
+    "slot",
+    "startDateTime endDateTime duration isBooked"
+  );
+  if (!appointment) {
+    throw new CustomErrors.NotFoundError("appointment not found");
+  }
+  if (appointment.customer.toString() !== request.user.id) {
+    throw new CustomErrors.BadRequestError("invalid appointment id");
+  }
+  if (!appointment.startedByPractitioner || appointment.endedByPractitioner) {
+    throw new CustomErrors.BadRequestError(
+      "appointment is not started or already ended by practitioner"
+    );
+  }
+  if (!appointment.slot || !appointment.slot.isBooked) {
+    throw new CustomErrors.NotFoundError("appointmnet not found");
+  }
+  const timeSlot = appointment.slot;
+  const now = moment();
+  const slotStartDateTime = moment(timeSlot.startDateTime);
+  const slotEndDateTime = moment(
+    timeSlot.endDateTime ||
+      slotStartDateTime.clone().add(timeSlot.duration, "seconds")
+  );
+  if (now.isSameOrAfter(slotEndDateTime)) {
+    throw new CustomErrors.BadRequestError(
+      "appointmnet must be started before its end time"
+    );
+  }
+  if (!appointment.joinedByCustomer) {
+    appointment.joinedByCustomer = true;
+    appointment.dateJoinedByCustomer = new Date();
+    await appointment.save();
+  }
+  response.json({ appointment });
+};
+
 const startAppointmentByPractitioner = async (request, response) => {
   const { appointmentID } = request.body;
   if (!appointmentID) {
     throw new CustomErrors.BadRequestError("appointmnet ID is required");
   }
-  console.log("--- started date", new Date());
+  // console.log("--- started date", new Date());
   const appointment = await AppointmentModel.findById(appointmentID).populate(
     "slot",
-    "startDateTime endDateTime duration"
+    "startDateTime endDateTime duration isBooked"
   );
-  console.log(
-    "--- practitioner id",
-    appointment.practitioner.toString(),
-    typeof appointment.practitioner.toString()
-  );
+  if (!appointment) {
+    throw new CustomErrors.NotFoundError("appointment not found");
+  }
+  // console.log(
+  //   "--- practitioner id",
+  //   appointment.practitioner.toString(),
+  //   typeof appointment.practitioner.toString()
+  // );
   if (appointment.practitioner.toString() !== request.user.id) {
     throw new CustomErrors.NotFoundError("invalid appointment ID");
   }
-  if (!appointment || !appointment.slot) {
+  if (appointment.endedByPractitioner) {
+    throw new CustomErrors.BadRequestError(
+      "appointment is already ended by practitioner"
+    );
+  }
+  if (!appointment.slot || !appointment.slot.isBooked) {
     throw new CustomErrors.NotFoundError("appointmnet not found");
   }
   const timeSlot = appointment.slot;
@@ -37,9 +140,11 @@ const startAppointmentByPractitioner = async (request, response) => {
       "appointmnet must be started at start time and before its end time"
     );
   }
-  appointment.startedByPractitioner = true;
-  appointment.dateStartedByPractitioner = new Date();
-  await appointment.save();
+  if (!appointment.startedByPractitioner) {
+    appointment.startedByPractitioner = true;
+    appointment.dateStartedByPractitioner = new Date();
+    await appointment.save();
+  }
   // const appointment = await AppointmentModel.findByIdAndUpdate(
   //   appointmentID,
   //   {
@@ -178,6 +283,16 @@ const bookAppointment = async (request, response) => {
       "invalid slot id or slot is aleady booked"
     );
   }
+  const slotStartDateTime = moment(slot.startDateTime);
+  const slotEndDateTime = moment(
+    slot.endDateTime || slotStartDateTime.clone().add(slot.duration, "seconds")
+  );
+  const now = moment();
+  if (now.isSameOrAfter(slotEndDateTime)) {
+    throw new CustomErrors.BadRequestError(
+      "invalid slot id or slot is aleady booked"
+    );
+  }
   const appointment = await AppointmentModel.create({
     slot: slotID,
     practitioner: slot.practitioner,
@@ -210,4 +325,7 @@ module.exports = {
   getCurrentCustomerAppointments,
   getCurrentPractitionerAppointments,
   startAppointmentByPractitioner,
+  joinAppointmentByCustomer,
+  endAppointmentByPractitioner,
+  endAppointmentByCustomer,
 };

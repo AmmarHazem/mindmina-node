@@ -6,6 +6,9 @@ const {
   getCurrentCustomerAppointments,
   getCurrentPractitionerAppointments,
   startAppointmentByPractitioner,
+  joinAppointmentByCustomer,
+  endAppointmentByPractitioner,
+  endAppointmentByCustomer,
 } = require("../controllers/appointmentControllers");
 
 const router = express.Router();
@@ -19,6 +22,21 @@ router.get(
   "/current-customer-appointments",
   [authenticationMiddleware, hasPermissionMiddleware("customer", "admin")],
   getCurrentCustomerAppointments
+);
+router.post(
+  "/end-appointment-by-customer",
+  [authenticationMiddleware, hasPermissionMiddleware("customer", "admin")],
+  endAppointmentByCustomer
+);
+router.post(
+  "/join-appointment-by-customer",
+  [authenticationMiddleware, hasPermissionMiddleware("customer", "admin")],
+  joinAppointmentByCustomer
+);
+router.post(
+  "/end-appointment-by-practitioner",
+  [authenticationMiddleware, hasPermissionMiddleware("practitioner", "admin")],
+  endAppointmentByPractitioner
 );
 router.post(
   "/start-appointment-by-practitioner",

@@ -66,7 +66,7 @@ UserSchema.virtual("slots", {
   ref: "AppointmentTimeSlot",
   localField: "_id",
   foreignField: "practitioner",
-  match: { isBooked: false },
+  match: { isBooked: false, startDateTime: { $gt: new Date() } },
 });
 
 module.exports = mongoose.model("User", UserSchema);
