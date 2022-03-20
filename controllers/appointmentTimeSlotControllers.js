@@ -21,6 +21,9 @@ const createDaySlotsForPractitioner = async (request, response) => {
   while (currentSlotTime.isBefore(dayEndDateTime)) {
     slotDocs.push({
       startDateTime: currentSlotTime.toDate(),
+      endDateTime: currentSlotTime
+        .clone()
+        .add(slotDurationInMinutes, "minutes"),
       practitioner: practitionerID,
       duration: slotDurationInMinutes * 60,
     });

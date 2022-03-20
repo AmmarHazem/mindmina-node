@@ -4,6 +4,79 @@ const AppointmentModel = require("../models/Appointment");
 const AppointmentTimeSlotModel = require("../models/AppointmentTimeSlot");
 const CustomErrors = require("../errors");
 
+const startAppointmentByPractitioner = async (request, response) => {
+  const { appointmentID } = request.body;
+  if (!appointmentID) {
+    throw new CustomErrors.BadRequestError("appointmnet ID is required");
+  }
+  console.log("--- started date", new Date());
+  const appointment = await AppointmentModel.findById(appointmentID).populate(
+    "slot",
+    "startDateTime endDateTime duration"
+  );
+  console.log(
+    "--- practitioner id",
+    appointment.practitioner.toString(),
+    typeof appointment.practitioner.toString()
+  );
+  if (appointment.practitioner.toString() !== request.user.id) {
+    throw new CustomErrors.NotFoundError("invalid appointment ID");
+  }
+  if (!appointment || !appointment.slot) {
+    throw new CustomErrors.NotFoundError("appointmnet not found");
+  }
+  const timeSlot = appointment.slot;
+  const now = moment();
+  const slotStartDateTime = moment(timeSlot.startDateTime);
+  const slotEndDateTime = moment(
+    timeSlot.endDateTime ||
+      slotStartDateTime.clone().add(timeSlot.duration, "seconds")
+  );
+  if (now.isBefore(slotStartDateTime) || now.isSameOrAfter(slotEndDateTime)) {
+    throw new CustomErrors.BadRequestError(
+      "appointmnet must be started at start time and before its end time"
+    );
+  }
+  appointment.startedByPractitioner = true;
+  appointment.dateStartedByPractitioner = new Date();
+  await appointment.save();
+  // const appointment = await AppointmentModel.findByIdAndUpdate(
+  //   appointmentID,
+  //   {
+  //     startedByPractitioner: true,
+  //     dateStartedByPractitioner: new Date(),
+  //   },
+  //   { new: true, runValidators: true }
+  // );
+  response.json({ appointment });
+};
+
+const getCurrentPractitionerAppointments = async (request, response) => {
+  const { startDate, endDate } = request.query;
+  const queryObject = {
+    practitioner: request.user.id,
+    isBooked: true,
+  };
+  if (startDate) {
+    queryObject.startDateTime = { $gte: moment(startDate).toDate() };
+  }
+  if (endDate) {
+    queryObject.startDateTime = { $lte: moment(endDate).toDate() };
+  }
+  if (!startDate && !endDate) {
+    queryObject.startDateTime = { $gte: new Date() };
+  }
+  const timeSlots = await AppointmentTimeSlotModel.find(queryObject);
+  const timeSlotsIDs = timeSlots.map((item) => item._id);
+  const appointments = await AppointmentModel.find({
+    slot: { $in: timeSlotsIDs },
+  }).populate("slot");
+  response.json({
+    count: appointments.length,
+    appointments,
+  });
+};
+
 const getCurrentCustomerAppointments = async (request, response) => {
   const { startDate, endDate } = request.query;
   const queryObject = {};
@@ -14,7 +87,7 @@ const getCurrentCustomerAppointments = async (request, response) => {
     queryObject.startDateTime = { $lte: moment(endDate).toDate() };
   }
   if (!startDate && !endDate) {
-    queryObject.startDateTime = { $gte: Date.now() };
+    queryObject.startDateTime = { $gte: new Date() };
   }
   const slots = await AppointmentTimeSlotModel.find(queryObject);
   const slotIDs = slots.map((item) => item._id);
@@ -132,4 +205,9 @@ const bookAppointment = async (request, response) => {
   });
 };
 
-module.exports = { bookAppointment, getCurrentCustomerAppointments };
+module.exports = {
+  bookAppointment,
+  getCurrentCustomerAppointments,
+  getCurrentPractitionerAppointments,
+  startAppointmentByPractitioner,
+};

@@ -63,6 +63,26 @@ const AppointmentSchema = new mongoose.Schema(
     customerReasonOfVisit: { type: String, required: true },
     doFullPayment: { type: Boolean },
     voiceNote: { type: String },
+    startedByPractitioner: {
+      type: Boolean,
+      default: false,
+    },
+    endedByPractitioner: {
+      type: Boolean,
+      default: false,
+    },
+    dateStartedByPractitioner: { type: Date },
+    dateEndedByPractitioner: { type: Date },
+    joinedByCustomer: {
+      type: Boolean,
+      default: false,
+    },
+    endedByCustomer: {
+      type: Boolean,
+      default: false,
+    },
+    dateEndedByCustomer: { type: Date },
+    dateJoinedByCustomer: { type: Date },
   },
   { timestamps: true }
 );

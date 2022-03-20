@@ -1,9 +1,12 @@
 const mongoose = require("mongoose");
-const moment = require("moment");
 
 const AppointmentTimeSlotSchema = new mongoose.Schema(
   {
     startDateTime: {
+      type: Date,
+      required: true,
+    },
+    endDateTime: {
       type: Date,
       required: true,
     },
@@ -33,9 +36,14 @@ AppointmentTimeSlotSchema.virtual("appointment", {
   justOne: true,
 });
 
-AppointmentTimeSlotSchema.virtual("endDateTime").get(function () {
-  return moment(this.startDateTime).add(this.duration, "seconds").toDate();
-});
+// AppointmentTimeSlotSchema.virtual("duration").get(function () {
+//   const duration = this.startDateTime - this.endDateTime;
+//   return duration.asSeconds();
+// });
+
+// AppointmentTimeSlotSchema.virtual("endDateTime").get(function () {
+//   return moment(this.startDateTime).add(this.duration, "seconds").toDate();
+// });
 
 AppointmentTimeSlotSchema.index(
   { practitioner: 1, startDateTime: 1 },

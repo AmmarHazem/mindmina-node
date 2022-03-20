@@ -11,7 +11,7 @@ const uploadFileRoutes = require("./routes/uploadFileRoutes");
 const userRoutes = require("./routes/userRoutes");
 const appointmentRoutes = require("./routes/appointmentRoutes");
 
-const AppointmentModel = require("./models/Appointment");
+// const AppointmentModel = require("./models/Appointment");
 const AppointmentTimeSlotModel = require("./models/AppointmentTimeSlot");
 
 const app = express();
