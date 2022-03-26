@@ -194,7 +194,7 @@ const getCurrentCustomerAppointments = async (request, response) => {
   if (!startDate && !endDate) {
     queryObject.startDateTime = { $gte: new Date() };
   }
-  const slots = await AppointmentTimeSlotModel.find(queryObject);
+  const slots = await AppointmentTimeSlotModel.find(queryObject).select("_id");
   const slotIDs = slots.map((item) => item._id);
   const appointments = await AppointmentModel.find({
     slot: { $in: slotIDs },
