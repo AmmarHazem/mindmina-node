@@ -29,6 +29,16 @@ const UserSchema = new mongoose.Schema(
       type: String,
       enum: ["customer", "practitioner", "clinic", "admin"],
       default: "customer",
+      validate: {
+        validator: function (value) {
+          // console.log("--- role validator", value, this.email, this.name);
+          if (value === "practitioner" && !this.clinic) {
+            return false;
+          }
+          return true;
+        },
+        message: "clinic id is required for practitioners",
+      },
     },
     isEmailVerified: {
       type: Boolean,
@@ -40,12 +50,17 @@ const UserSchema = new mongoose.Schema(
     resetPasswordTokenExpiryDate: Date,
     profileImageURL: String,
     bio: String,
+    clinic: {
+      type: mongoose.Types.ObjectId,
+      ref: "User",
+    },
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
 UserSchema.index({ role: 1 });
 
+// before removing practitioner remove this slots also
 UserSchema.pre("remove", function () {
   if (this.role !== "practitioner") return;
   this.model("AppointmentTimeSlot").deleteMany({ practitioner: this._id });
@@ -62,6 +77,23 @@ UserSchema.methods.comparePassword = async function (candidatePassword) {
   return isMatch;
 };
 
+// get appointments of clinic
+UserSchema.virtual("appointments", {
+  ref: "Appointment",
+  foreignField: "clinic",
+  localField: "_id",
+  justOne: false,
+});
+
+// get practitioners of clinic
+UserSchema.virtual("practitioners", {
+  ref: "User",
+  localField: "_id",
+  foreignField: "clinic",
+  justOne: false,
+});
+
+// get practitioner slots
 UserSchema.virtual("slots", {
   ref: "AppointmentTimeSlot",
   localField: "_id",

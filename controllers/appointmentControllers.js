@@ -1,8 +1,62 @@
 const moment = require("moment");
 const { StatusCodes } = require("http-status-codes");
 const AppointmentModel = require("../models/Appointment");
+const UserModel = require("../models/User");
 const AppointmentTimeSlotModel = require("../models/AppointmentTimeSlot");
 const CustomErrors = require("../errors");
+
+const approveOrRejectAppointmentByClinic = async (request, response) => {
+  const {
+    appointmentID,
+    isApprove,
+    rejectFeedback,
+    paymentAmount,
+    isCoPayment,
+  } = request.body;
+  if (!appointmentID) {
+    throw new CustomErrors.BadRequestError("appointment id is required");
+  }
+  if (isApprove === undefined || isApprove === null) {
+    throw new CustomErrors.BadRequestError("is approved is required");
+  }
+  const appointment = await AppointmentModel.findById(appointmentID);
+  if (!appointment) {
+    throw new CustomErrors.NotFoundError("appointment not found");
+  }
+  if (appointment.clinic.toString() !== request.user.id) {
+    throw new CustomErrors.NotFoundError("invalid appointment id");
+  }
+  if (isApprove === false && !rejectFeedback) {
+    throw new CustomErrors.NotFoundError(
+      "in case of rejection feed back is required"
+    );
+  }
+  if (isApprove && isCoPayment && !paymentAmount) {
+    throw new CustomErrors.NotFoundError(
+      "in case of co payment payment amount is required"
+    );
+  }
+  appointment.approvedByClinic = isApprove;
+  appointment.dateApprovedByClinic = new Date();
+  appointment.clinicFeedback = rejectFeedback;
+  if (isApprove) {
+    appointment.isCoPayment = isCoPayment;
+  } else {
+    appointment.isCoPayment = false;
+  }
+  if (isCoPayment) {
+    appointment.paymentAmount = paymentAmount;
+  }
+  await appointment.save();
+  response.json({ appointment });
+};
+
+const getCurrentClinicAppointments = async (request, response) => {
+  const clinic = await UserModel.findById(request.user.id)
+    .select("name email role")
+    .populate("appointments");
+  response.json({ clinic });
+};
 
 const endAppointmentByCustomer = async (request, response) => {
   const { appointmentID } = request.body;
@@ -18,6 +72,9 @@ const endAppointmentByCustomer = async (request, response) => {
   }
   if (appointment.customer.toString() !== request.user.id) {
     throw new CustomErrors.NotFoundError("invalid appointment ID");
+  }
+  if (!appointment.startedByPractitioner) {
+    throw new CustomErrors.BadRequestError("appointmnet must be started first");
   }
   if (!appointment.slot || !appointment.slot.isBooked) {
     throw new CustomErrors.NotFoundError("appointmnet not found");
@@ -45,6 +102,9 @@ const endAppointmentByPractitioner = async (request, response) => {
   if (appointment.practitioner.toString() !== request.user.id) {
     throw new CustomErrors.NotFoundError("invalid appointment ID");
   }
+  if (!appointment.startedByPractitioner) {
+    throw new CustomErrors.BadRequestError("appointmnet must be started first");
+  }
   if (!appointment.slot || !appointment.slot.isBooked) {
     throw new CustomErrors.NotFoundError("appointmnet not found");
   }
@@ -70,6 +130,11 @@ const joinAppointmentByCustomer = async (request, response) => {
   }
   if (appointment.customer.toString() !== request.user.id) {
     throw new CustomErrors.BadRequestError("invalid appointment id");
+  }
+  if (!appointment.approvedByClinic) {
+    throw new CustomErrors.BadRequestError(
+      "appointment is not yet approved or rejected by clinic"
+    );
   }
   if (!appointment.startedByPractitioner || appointment.endedByPractitioner) {
     throw new CustomErrors.BadRequestError(
@@ -119,6 +184,11 @@ const startAppointmentByPractitioner = async (request, response) => {
   // );
   if (appointment.practitioner.toString() !== request.user.id) {
     throw new CustomErrors.NotFoundError("invalid appointment ID");
+  }
+  if (!appointment.approvedByClinic) {
+    throw new CustomErrors.BadRequestError(
+      "appointment is not yet approved or rejected by clinic"
+    );
   }
   if (appointment.endedByPractitioner) {
     throw new CustomErrors.BadRequestError(
@@ -197,8 +267,8 @@ const getCurrentCustomerAppointments = async (request, response) => {
   const slots = await AppointmentTimeSlotModel.find(queryObject).select("_id");
   const slotIDs = slots.map((item) => item._id);
   const appointments = await AppointmentModel.find({
-    slot: { $in: slotIDs },
     customer: request.user.id,
+    slot: { $in: slotIDs },
   }).populate("slot");
   // const appointments = await AppointmentModel.find({
   //   customer: request.user.id,
@@ -277,7 +347,15 @@ const bookAppointment = async (request, response) => {
   if (!gender) {
     throw new CustomErrors.BadRequestError("gender is required");
   }
-  const slot = await AppointmentTimeSlotModel.findById(slotID);
+  const slot = await AppointmentTimeSlotModel.findById(slotID).populate(
+    "practitioner",
+    "clinic"
+  );
+  console.log(
+    "--- slot practitioner",
+    slot.practitioner._id,
+    slot.practitioner.clinic
+  );
   if (!slot || slot.isBooked) {
     throw new CustomErrors.BadRequestError(
       "invalid slot id or slot is aleady booked"
@@ -295,16 +373,20 @@ const bookAppointment = async (request, response) => {
   }
   const appointment = await AppointmentModel.create({
     slot: slotID,
-    practitioner: slot.practitioner,
+    practitioner: slot.practitioner._id,
     customer: request.user.id,
     customerResidenceStatus: residenceStatus,
     customerPhoneNumber: phoneNumber,
     customerEmiratesIDImageFront: emiratesIDImageFront,
     customerEmiratesIDImageBack: emiratesIDImageBack,
-    customerEmiratesIDExpiryDate: moment(emiratesIDExpityDate).toDate(),
+    customerEmiratesIDExpiryDate: emiratesIDExpityDate
+      ? moment(emiratesIDExpityDate).toDate()
+      : null,
     customerPassportImage: passportImage,
     customerPassportNumber: passportNumber,
-    customerPassportExpiryDate: moment(passportExpiryDate).toDate(),
+    customerPassportExpiryDate: passportExpiryDate
+      ? moment(passportExpiryDate).toDate()
+      : null,
     customerGender: gender,
     customerIsInsured: isInsured,
     customerInsuranceProvider: insuranceProvider,
@@ -312,6 +394,7 @@ const bookAppointment = async (request, response) => {
     customerReasonOfVisit: reasonOfVisit,
     doFullPayment: proceedWithFullPayment,
     voiceNote: voiceNoteURL,
+    clinic: slot.practitioner.clinic,
   });
   slot.isBooked = true;
   await slot.save();
@@ -328,4 +411,6 @@ module.exports = {
   joinAppointmentByCustomer,
   endAppointmentByPractitioner,
   endAppointmentByCustomer,
+  getCurrentClinicAppointments,
+  approveOrRejectAppointmentByClinic,
 };

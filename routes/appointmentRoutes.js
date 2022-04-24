@@ -9,10 +9,22 @@ const {
   joinAppointmentByCustomer,
   endAppointmentByPractitioner,
   endAppointmentByCustomer,
+  getCurrentClinicAppointments,
+  approveOrRejectAppointmentByClinic,
 } = require("../controllers/appointmentControllers");
 
 const router = express.Router();
 
+router.post(
+  "/approve-reject-appointment-by-clinic",
+  [authenticationMiddleware, hasPermissionMiddleware("clinic")],
+  approveOrRejectAppointmentByClinic
+);
+router.get(
+  "/get-current-clinic-appointments",
+  [authenticationMiddleware, hasPermissionMiddleware("clinic")],
+  getCurrentClinicAppointments
+);
 router.get(
   "/current-practitioner-appointments",
   [authenticationMiddleware, hasPermissionMiddleware("practitioner", "admin")],

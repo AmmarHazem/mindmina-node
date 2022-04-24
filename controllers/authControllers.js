@@ -147,7 +147,7 @@ const verifyEmail = async (request, response) => {
 };
 
 const register = async (request, response) => {
-  const { email, name, password, role } = request.body;
+  const { email, name, password, role, clinic } = request.body;
   if (!email || !name || !password) {
     throw new CustomErrors.BadRequestError(
       "email, name and password are required"
@@ -163,6 +163,7 @@ const register = async (request, response) => {
     password,
     emailVerificationToken,
     role: userRole,
+    clinic,
   });
   sendVerificationEmail({
     verificationToken: emailVerificationToken,

@@ -12,7 +12,8 @@ const userRoutes = require("./routes/userRoutes");
 const appointmentRoutes = require("./routes/appointmentRoutes");
 
 // const AppointmentModel = require("./models/Appointment");
-const AppointmentTimeSlotModel = require("./models/AppointmentTimeSlot");
+// const AppointmentTimeSlotModel = require("./models/AppointmentTimeSlot");
+const UserModel = require("./models/User");
 
 const app = express();
 app.use(express.static("./public"));
@@ -25,10 +26,10 @@ app.use("/api/v1/files", uploadFileRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/appointments", appointmentRoutes);
 app.use("/testing-here", async (request, response) => {
-  const slot = await AppointmentTimeSlotModel.findById(
-    "622c939153d97797734e7f7c"
-  ).populate("appointment");
-  response.json({ appointment: slot.appointment });
+  const user = await UserModel.findById("622c62fb7175d1cd08acd044").populate(
+    "practitioners"
+  );
+  response.json({ user });
 });
 app.use(routeNotFoundMiddleware);
 app.use(errorHandlerMiddleware);

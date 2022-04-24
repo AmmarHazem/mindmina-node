@@ -23,8 +23,12 @@ const AppointmentSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    price: { type: Number },
     practitioner: {
+      type: mongoose.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    clinic: {
       type: mongoose.Types.ObjectId,
       ref: "User",
       required: true,
@@ -83,11 +87,19 @@ const AppointmentSchema = new mongoose.Schema(
     },
     dateEndedByCustomer: { type: Date },
     dateJoinedByCustomer: { type: Date },
+    approvedByClinic: { type: Boolean },
+    dateApprovedByClinic: { type: Date },
+    clinicFeedback: { type: String },
+    paymentAmount: { type: Number },
+    isCoPayment: { type: Boolean },
+    isPaidByCustomer: { type: Boolean, default: false },
+    datePaiedByCustomer: { type: Date },
   },
   { timestamps: true }
 );
 
 AppointmentSchema.index({ practitioner: 1 });
 AppointmentSchema.index({ customer: 1 });
+AppointmentSchema.index({ clinic: 1 });
 
 module.exports = mongoose.model("Appointment", AppointmentSchema);
