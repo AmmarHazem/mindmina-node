@@ -11,10 +11,16 @@ const {
   endAppointmentByCustomer,
   getCurrentClinicAppointments,
   approveOrRejectAppointmentByClinic,
+  completePaymentByCustomer,
 } = require("../controllers/appointmentControllers");
 
 const router = express.Router();
 
+router.post(
+  "/complete-payment-by-customer",
+  [authenticationMiddleware, hasPermissionMiddleware("customer")],
+  completePaymentByCustomer
+);
 router.post(
   "/approve-reject-appointment-by-clinic",
   [authenticationMiddleware, hasPermissionMiddleware("clinic")],

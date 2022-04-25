@@ -5,6 +5,36 @@ const UserModel = require("../models/User");
 const AppointmentTimeSlotModel = require("../models/AppointmentTimeSlot");
 const CustomErrors = require("../errors");
 
+const completePaymentByCustomer = async (request, response) => {
+  const { appointmentID } = request.body;
+  if (!appointmentID) {
+    throw new CustomErrors.BadRequestError("appointment id is required");
+  }
+  const appointment = await AppointmentModel.findById(appointmentID);
+  if (!appointment) {
+    throw new CustomErrors.NotFoundError("appointment not found");
+  }
+  if (appointment.customer.toString() !== request.user.id) {
+    throw new CustomErrors.NotFoundError("invalid appointment id");
+  }
+  if (!appointment.approvedByClinic) {
+    throw new CustomErrors.NotFoundError(
+      "appointment is not approved by clinic"
+    );
+  }
+  if (!appointment.isCoPayment) {
+    throw new CustomErrors.NotFoundError(
+      "no payment is required for this appointment"
+    );
+  }
+  if (!appointment.datePaiedByCustomer) {
+    appointment.isPaidByCustomer = true;
+    appointment.datePaiedByCustomer = new Date();
+    await appointment.save();
+  }
+  response.json({ appointment });
+};
+
 const approveOrRejectAppointmentByClinic = async (request, response) => {
   const {
     appointmentID,
@@ -136,6 +166,11 @@ const joinAppointmentByCustomer = async (request, response) => {
       "appointment is not yet approved or rejected by clinic"
     );
   }
+  if (appointment.isCoPayment && !appointment.isPaidByCustomer) {
+    throw new CustomErrors.BadRequestError(
+      "payment is not completed by customer"
+    );
+  }
   if (!appointment.startedByPractitioner || appointment.endedByPractitioner) {
     throw new CustomErrors.BadRequestError(
       "appointment is not started or already ended by practitioner"
@@ -188,6 +223,11 @@ const startAppointmentByPractitioner = async (request, response) => {
   if (!appointment.approvedByClinic) {
     throw new CustomErrors.BadRequestError(
       "appointment is not yet approved or rejected by clinic"
+    );
+  }
+  if (appointment.isCoPayment && !appointment.isPaidByCustomer) {
+    throw new CustomErrors.BadRequestError(
+      "payment is not completed by customer"
     );
   }
   if (appointment.endedByPractitioner) {
@@ -413,4 +453,5 @@ module.exports = {
   endAppointmentByCustomer,
   getCurrentClinicAppointments,
   approveOrRejectAppointmentByClinic,
+  completePaymentByCustomer,
 };
