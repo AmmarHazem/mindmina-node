@@ -10,6 +10,7 @@ const appointmentTimeSlotRoutes = require("./routes/appointmentTimeSlotRoutes");
 const uploadFileRoutes = require("./routes/uploadFileRoutes");
 const userRoutes = require("./routes/userRoutes");
 const appointmentRoutes = require("./routes/appointmentRoutes");
+const practitionerSpecialityRoutes = require("./routes/practitionerSpecialityRoutes");
 
 // const AppointmentModel = require("./models/Appointment");
 // const AppointmentTimeSlotModel = require("./models/AppointmentTimeSlot");
@@ -25,6 +26,7 @@ app.use("/api/v1/time-slots", appointmentTimeSlotRoutes);
 app.use("/api/v1/files", uploadFileRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/appointments", appointmentRoutes);
+app.use("/api/v1/practitioner-speciality", practitionerSpecialityRoutes);
 app.use("/testing-here", async (request, response) => {
   const user = await UserModel.findById("622c62fb7175d1cd08acd044").populate(
     "practitioners"
@@ -34,7 +36,7 @@ app.use("/testing-here", async (request, response) => {
 app.use(routeNotFoundMiddleware);
 app.use(errorHandlerMiddleware);
 
-const port = 5000;
+const port = process.env.PORT || 8000;
 
 const start = async () => {
   try {

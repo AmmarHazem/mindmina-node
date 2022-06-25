@@ -1,7 +1,8 @@
 const mongoose = require("mongoose");
 const validator = require("validator");
-const hashPassword = require("../utils/hashPassword");
 const bcrypt = require("bcryptjs");
+const PractitionerSpecialitySchema = require("./PractitionerSpecialitySchema");
+const hashPassword = require("../utils/hashPassword");
 
 const UserSchema = new mongoose.Schema(
   {
@@ -39,6 +40,9 @@ const UserSchema = new mongoose.Schema(
         },
         message: "clinic id is required for practitioners",
       },
+    },
+    practitionerSpecialities: {
+      type: [PractitionerSpecialitySchema],
     },
     isEmailVerified: {
       type: Boolean,
