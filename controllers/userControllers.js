@@ -28,8 +28,13 @@ const deleteUser = async (request, response) => {
 };
 
 const getAllPractitioners = async (request, response) => {
-  const practitioners = await UserModel.find({ role: "practitioner" })
-    .select("email name role")
+  const { speciality } = request.query;
+  const query = { role: "practitioner" };
+  if (speciality) {
+    query["practitionerSpecialities.name"] = speciality;
+  }
+  const practitioners = await UserModel.find(query)
+    .select("email name role clinic practitionerSpecialities")
     .populate("slots");
   return response.json({
     count: practitioners.length,

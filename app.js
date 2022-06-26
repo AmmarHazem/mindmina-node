@@ -28,10 +28,11 @@ app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/appointments", appointmentRoutes);
 app.use("/api/v1/practitioner-speciality", practitionerSpecialityRoutes);
 app.use("/testing-here", async (request, response) => {
-  const user = await UserModel.findById("622c62fb7175d1cd08acd044").populate(
-    "practitioners"
-  );
-  response.json({ user });
+  const users = await UserModel.find({
+    role: "practitioner",
+    "practitionerSpecialities.name": "Dentist",
+  });
+  response.json({ count: users.length, user: users });
 });
 app.use(routeNotFoundMiddleware);
 app.use(errorHandlerMiddleware);
